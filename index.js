@@ -1,19 +1,9 @@
 const express = require('express');
 const path = require('path');
-const app = express();
-const http = require('http');
 const { Server } = require("socket.io");
-const server = http.createServer(app);
+const serverless = require('serverless-http');
 
-// all the streams are handled by socket.io
-const io = new Server(server);
-
-io.on('connection', (socket) => { 
-    socket.on('user-message', (message) => {
-        console.log('A new user message', message);
-        io.emit('message', message);    
-    });
-});
+const app = express();
 
 // Serve static files from the root directory
 app.use(express.static(path.join(__dirname)));
@@ -23,6 +13,17 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-server.listen(3000, () => {
-    console.log("Server started at port 3000");
+// Create an HTTP server and attach Socket.io
+const server = require('http').createServer(app);
+const io = new Server(server);
+
+io.on('connection', (socket) => { 
+    socket.on('user-message', (message) => {
+        console.log('A new user message', message);
+        io.emit('message', message);    
+    });
 });
+
+// Export the serverless function
+module.exports = app;
+module.exports.handler = serverless(app);
